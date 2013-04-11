@@ -496,20 +496,29 @@ void MarbleDeliverer::notify(Sensors::SensorData* data) {
       }
     }
     break;
+
   case mdsGoingToChute:
     // Trigger the servo.
     _servo->goTo(SERVOPOS_DROPMARBLE);
     _state = mdsDroppingMarble;
     break;
+
   case mdsDroppingMarble:
     // Okay, servo's finished;  wait for the marble to roll off
     _waiter->wait(MARBLE_ROLLOFF_DELAY);
     _state = mdsWaitingForMarble;
     break;
+
   case mdsWaitingForMarble:
+    gotoSafeDropPoint();
+    _state = mdsDroppingRocker;
+    break;
+
+  case mdsDroppingRocker:
     _servo->goTo(SERVOPOS_START);
     _state = mdsReturnToStart;
     break;
+
   case mdsReturnToStart:
     _state = mdsReady;
     if (_marblesToGo > 0) {
@@ -525,6 +534,39 @@ void MarbleDeliverer::notify(Sensors::SensorData* data) {
   default:
     break;
   }
+}
+
+// The bot needs to drop the rocker.  Check if we're currently over any hoppers, and move
+// to a clear patch if we are.
+void MarbleDeliverer::gotoSafeDropPoint() {
+    // Check if we're overlapping with any hoppers before putting the rocker back down
+    int overlap = -1;
+    int rockerleft, rockerright;
+    rockerleft = _stepMotor->pos() - ROCKER_WIDTH / 2;
+    rockerright = _stepMotor->pos() + ROCKER_WIDTH / 2;
+    for (int i = 0; i < HOPPER_COUNT; i ++) {
+      if (_hopperSteps[i] == -1)
+	continue;
+      int hopperleft = _hopperSteps[i] - HOPPER_WIDTH / 2;
+      int hopperright = _hopperSteps[i] + HOPPER_WIDTH / 2;
+
+      if (!(rockerright < hopperleft || rockerleft > hopperright)) {
+	overlap = i;
+	Serial.print("Overlapping with ");
+	Serial.println(i);
+	break;
+      }
+    }
+    int destination = _stepMotor->pos();
+    Serial.print("pos ");
+    Serial.println(destination);
+    if (overlap != -1) {
+      // Can be exact here because I've overcatered for the rocker width by about 10%.
+      destination = (_hopperSteps[overlap] - HOPPER_WIDTH) - ROCKER_WIDTH / 2;
+    }
+    _stepMotor->gotoStep(destination);
+    Serial.print("dest ");
+    Serial.println(destination);
 }
 
 void MarbleDeliverer::errorCondition(char* err) {

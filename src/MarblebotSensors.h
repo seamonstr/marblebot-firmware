@@ -36,7 +36,7 @@ enum MarbleDelivererState {
   mdsZeroing,
   // States for marble delivery
   mdsGoingToHopper, mdsGettingMarble, mdsGoingToChute, mdsDroppingMarble, mdsWaitingForMarble,
-  mdsReturnToStart,
+  mdsReturnToStart, mdsDroppingRocker,
   // Just going to a destination, nothing more
   mdsGoto,
   mdsGoingToChuteOnly, 
@@ -54,9 +54,13 @@ enum MarbleDelivererState {
 #define TRACK_BEGIN_PIN 12
 
 // Positions for the rocker 
-#define SERVOPOS_GOTMARBLE 96
+#define SERVOPOS_GOTMARBLE 94
 #define SERVOPOS_DROPMARBLE 55
 #define SERVOPOS_START 135
+
+// How wide the bits are
+#define ROCKER_WIDTH 220
+#define HOPPER_WIDTH 120
 
 // How long to wait in millis before taking another step with the servo. 
 #define SERVO_STEPDELAY 8
@@ -66,7 +70,7 @@ enum MarbleDelivererState {
 
 // How long to wait for a marble to go past the rocker LDR before going
 // into error condition
-#define GET_MARBLE_TIMEOUT 1000
+#define GET_MARBLE_TIMEOUT 2000
 
 // Numbers of hoppers/chutes we can support
 #define HOPPER_COUNT 5
@@ -133,6 +137,8 @@ class MarbleDeliverer: public Sensors::Subscriber {
   // actual method to kick off the marble delivery; excludes all
   // business checks.
   void doMarble(int fromHopper, int toChute);    
+
+  void gotoSafeDropPoint();
 
  public:
   // Reset all state (ie. delete all chutes and hoppers)
