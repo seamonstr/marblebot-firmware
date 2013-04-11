@@ -435,20 +435,14 @@ void MarbleDeliverer::notify(Sensors::SensorData* data) {
 
     Sensors::SwitchData *swData = ((Sensors::SwitchData*)data);
     
-    Serial.print("reed notifying: ");
-    Serial.println(swData->_val);
-    
     if (_state != mdsZeroing && swData->_val == LOW) {
       // If we're not zeroing and the switch just closed, our positioning is screwed.  Zero.
       // Don't call zero() because that switches the motor on.
       _state = mdsZeroing;
-      Serial.println("reed switch closed unexpectedy; zeroing.");
     }
     
     if (_state == mdsZeroing) {
       if (swData->_val == LOW) {
-	Serial.println("Zeroing, and just got back into the dead zone.");
-	
 	// If we're zeroing and the switch just closed then the car is in the bit too
 	// close to the step motor.  We need to move forward until it opens again.
 	_stepMotor->zero();
@@ -456,7 +450,6 @@ void MarbleDeliverer::notify(Sensors::SensorData* data) {
 	_stepMotor->gotoStep(10000);
       } else {
 	// If we're zeroing and the switch just became open then stop here - this is zero.
-	Serial.println("Zeroing, and just got back into the live bit.  Done!");
 	_stepMotor->zero();
 	_state = mdsReady;
       }
@@ -520,6 +513,7 @@ void MarbleDeliverer::notify(Sensors::SensorData* data) {
     break;
 
   case mdsReturnToStart:
+    Serial.println("Marble dropped.");
     _state = mdsReady;
     if (_marblesToGo > 0) {
       _marblesToGo --;
@@ -552,21 +546,15 @@ void MarbleDeliverer::gotoSafeDropPoint() {
 
       if (!(rockerright < hopperleft || rockerleft > hopperright)) {
 	overlap = i;
-	Serial.print("Overlapping with ");
-	Serial.println(i);
 	break;
       }
     }
     int destination = _stepMotor->pos();
-    Serial.print("pos ");
-    Serial.println(destination);
     if (overlap != -1) {
       // Can be exact here because I've overcatered for the rocker width by about 10%.
       destination = (_hopperSteps[overlap] - HOPPER_WIDTH) - ROCKER_WIDTH / 2;
     }
     _stepMotor->gotoStep(destination);
-    Serial.print("dest ");
-    Serial.println(destination);
 }
 
 void MarbleDeliverer::errorCondition(char* err) {
